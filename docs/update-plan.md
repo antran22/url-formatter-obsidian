@@ -3,6 +3,7 @@
 ## Overview
 
 Enhance URL Formatter plugin with two new features:
+
 1. **Selection-based pasting**: Use selected text as link title when pasting URLs
 2. **Title fetching**: Optionally fetch page title when no regex matches
 
@@ -59,22 +60,23 @@ Add new settings:
 
 ```typescript
 export interface UrlFormatterSettings {
-    urlPatterns: UrlPattern[];
-    // New settings
-    enableTitleFetch: boolean;       // Enable/disable title fetching
-    titleFetchTimeout: number;       // Timeout in ms (default: 5000)
+  urlPatterns: UrlPattern[];
+  // New settings
+  enableTitleFetch: boolean; // Enable/disable title fetching
+  titleFetchTimeout: number; // Timeout in ms (default: 5000)
 }
 
 export const DEFAULT_SETTINGS: UrlFormatterSettings = {
-    urlPatterns: [
-        // ... existing patterns
-    ],
-    enableTitleFetch: false,         // Default to disabled
-    titleFetchTimeout: 5000,         // 5 second timeout
+  urlPatterns: [
+    // ... existing patterns
+  ],
+  enableTitleFetch: false, // Default to disabled
+  titleFetchTimeout: 5000, // 5 second timeout
 };
 ```
 
 **Changes:**
+
 - Add `enableTitleFetch: boolean` - toggle for title fetching feature
 - Add `titleFetchTimeout: number` - configurable timeout for HTTP requests
 - Update `DEFAULT_SETTINGS` with new fields
@@ -86,7 +88,7 @@ export const DEFAULT_SETTINGS: UrlFormatterSettings = {
 New file for title fetching logic:
 
 ```typescript
-import { requestUrl, RequestUrlParam } from 'obsidian';
+import { requestUrl, RequestUrlParam } from "obsidian";
 
 /**
  * Fetches the HTML title from a URL
@@ -97,61 +99,62 @@ import { requestUrl, RequestUrlParam } from 'obsidian';
  * @returns The page title, or null if fetch failed
  */
 export async function fetchUrlTitle(
-    url: string,
-    timeout: number
+  url: string,
+  timeout: number,
 ): Promise<string | null> {
-    try {
-        const options: RequestUrlParam = {
-            url: url,
-            method: 'GET',
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (compatible; ObsidianURLFormatter/1.0)'
-            },
-            timeout: timeout
-        };
+  try {
+    const options: RequestUrlParam = {
+      url: url,
+      method: "GET",
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; ObsidianURLFormatter/1.0)",
+      },
+      timeout: timeout,
+    };
 
-        const response = await requestUrl(options);
-        const html = response.text;
+    const response = await requestUrl(options);
+    const html = response.text;
 
-        // Extract title from HTML
-        const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/is);
-        if (!titleMatch || !titleMatch[1]) {
-            return null;
-        }
-
-        // Decode HTML entities and clean up
-        let title = titleMatch[1].trim();
-        title = decodeHtmlEntities(title);
-
-        return title || null;
-    } catch (error) {
-        console.error('URL Formatter: Failed to fetch title:', error);
-        return null;
+    // Extract title from HTML
+    const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/is);
+    if (!titleMatch || !titleMatch[1]) {
+      return null;
     }
+
+    // Decode HTML entities and clean up
+    let title = titleMatch[1].trim();
+    title = decodeHtmlEntities(title);
+
+    return title || null;
+  } catch (error) {
+    console.error("URL Formatter: Failed to fetch title:", error);
+    return null;
+  }
 }
 
 /**
  * Decodes common HTML entities
  */
 function decodeHtmlEntities(text: string): string {
-    const entities: Record<string, string> = {
-        '&amp;': '&',
-        '&lt;': '<',
-        '&gt;': '>',
-        '&quot;': '"',
-        '&apos;': "'",
-        '&#39;': "'",
-        '&nbsp;': ' ',
-        // Add more as needed
-    };
+  const entities: Record<string, string> = {
+    "&amp;": "&",
+    "&lt;": "<",
+    "&gt;": ">",
+    "&quot;": '"',
+    "&apos;": "'",
+    "&#39;": "'",
+    "&nbsp;": " ",
+    // Add more as needed
+  };
 
-    return text.replace(/&[^;]+;/g, entity => {
-        return entities[entity] || entity;
-    });
+  return text.replace(/&[^;]+;/g, (entity) => {
+    return entities[entity] || entity;
+  });
 }
 ```
 
 **Key Implementation Details:**
+
 - Use Obsidian's `requestUrl` API (handles CORS properly)
 - Timeout configurable via settings
 - Parse `<title>` tag using regex
@@ -166,15 +169,15 @@ function decodeHtmlEntities(text: string): string {
 Adapt logic from vendor plugin for CodeMirror 6:
 
 ```typescript
-import { EditorView } from '@codemirror/view';
+import { EditorView } from "@codemirror/view";
 
 /**
  * Represents a text selection in the editor
  */
 export interface Selection {
-    text: string;
-    from: number;
-    to: number;
+  text: string;
+  from: number;
+  to: number;
 }
 
 /**
@@ -184,8 +187,8 @@ export interface Selection {
  * @returns true if text is selected
  */
 export function hasSelection(view: EditorView): boolean {
-    const { from, to } = view.state.selection.main;
-    return from !== to;
+  const { from, to } = view.state.selection.main;
+  return from !== to;
 }
 
 /**
@@ -195,19 +198,19 @@ export function hasSelection(view: EditorView): boolean {
  * @returns Selection object with text and positions, or null if no selection
  */
 export function getSelection(view: EditorView): Selection | null {
-    const { from, to } = view.state.selection.main;
+  const { from, to } = view.state.selection.main;
 
-    if (from === to) {
-        return null; // No selection
-    }
+  if (from === to) {
+    return null; // No selection
+  }
 
-    const text = view.state.doc.sliceString(from, to);
+  const text = view.state.doc.sliceString(from, to);
 
-    return {
-        text: text,
-        from: from,
-        to: to
-    };
+  return {
+    text: text,
+    from: from,
+    to: to,
+  };
 }
 
 /**
@@ -219,46 +222,46 @@ export function getSelection(view: EditorView): Selection | null {
  * @returns true if inside markdown link parentheses
  */
 export function isInMarkdownLink(view: EditorView, pos: number): boolean {
-    const line = view.state.doc.lineAt(pos);
-    const lineText = line.text;
-    const cursorPos = pos - line.from;
+  const line = view.state.doc.lineAt(pos);
+  const lineText = line.text;
+  const cursorPos = pos - line.from;
 
-    // Look backwards for opening parenthesis preceded by ]
-    let openParenIndex = -1;
-    let depth = 0;
+  // Look backwards for opening parenthesis preceded by ]
+  let openParenIndex = -1;
+  let depth = 0;
 
-    // First, check if we're inside parentheses
-    for (let i = cursorPos - 1; i >= 0; i--) {
-        if (lineText[i] === ')' && i < cursorPos) {
-            depth++;
-        } else if (lineText[i] === '(') {
-            if (depth === 0) {
-                openParenIndex = i;
-                break;
-            }
-            depth--;
-        }
+  // First, check if we're inside parentheses
+  for (let i = cursorPos - 1; i >= 0; i--) {
+    if (lineText[i] === ")" && i < cursorPos) {
+      depth++;
+    } else if (lineText[i] === "(") {
+      if (depth === 0) {
+        openParenIndex = i;
+        break;
+      }
+      depth--;
     }
+  }
 
-    if (openParenIndex === -1) return false;
+  if (openParenIndex === -1) return false;
 
-    // Now check if this parenthesis is preceded by ']'
-    if (openParenIndex > 0 && lineText[openParenIndex - 1] === ']') {
-        // Look for matching '[' or '!['
-        let bracketDepth = 0;
-        for (let i = openParenIndex - 2; i >= 0; i--) {
-            if (lineText[i] === ']') {
-                bracketDepth++;
-            } else if (lineText[i] === '[') {
-                if (bracketDepth === 0) {
-                    return true;
-                }
-                bracketDepth--;
-            }
+  // Now check if this parenthesis is preceded by ']'
+  if (openParenIndex > 0 && lineText[openParenIndex - 1] === "]") {
+    // Look for matching '[' or '!['
+    let bracketDepth = 0;
+    for (let i = openParenIndex - 2; i >= 0; i--) {
+      if (lineText[i] === "]") {
+        bracketDepth++;
+      } else if (lineText[i] === "[") {
+        if (bracketDepth === 0) {
+          return true;
         }
+        bracketDepth--;
+      }
     }
+  }
 
-    return false;
+  return false;
 }
 
 /**
@@ -269,23 +272,24 @@ export function isInMarkdownLink(view: EditorView, pos: number): boolean {
  * @returns true if safe to insert link
  */
 export function isSafeInsertPosition(view: EditorView): boolean {
-    // Basic check - can be expanded later
-    const pos = view.state.selection.main.from;
-    const line = view.state.doc.lineAt(pos);
-    const lineText = line.text;
+  // Basic check - can be expanded later
+  const pos = view.state.selection.main.from;
+  const line = view.state.doc.lineAt(pos);
+  const lineText = line.text;
 
-    // Don't insert inside code blocks (backticks)
-    // This is a simple check; could be enhanced
-    const backtickCount = (lineText.match(/`/g) || []).length;
-    if (backtickCount % 2 === 1) {
-        return false; // Inside inline code
-    }
+  // Don't insert inside code blocks (backticks)
+  // This is a simple check; could be enhanced
+  const backtickCount = (lineText.match(/`/g) || []).length;
+  if (backtickCount % 2 === 1) {
+    return false; // Inside inline code
+  }
 
-    return true;
+  return true;
 }
 ```
 
 **Key Implementation Details:**
+
 - Adapt vendor's logic to work with CodeMirror 6 API
 - `EditorView` instead of `Editor`
 - State access via `view.state` and `view.state.doc`
@@ -359,6 +363,7 @@ export function decodeHtmlEntities(text: string): string {
 ### 2.1 Refactor `main.ts` - Paste Handler
 
 **Current implementation (simplified):**
+
 ```typescript
 createPasteHandler(): Extension {
     return EditorView.domEventHandlers({
@@ -377,6 +382,7 @@ createPasteHandler(): Extension {
 ```
 
 **New implementation (simplified):**
+
 ```typescript
 import { fetchUrlTitle } from './src/utils/title-fetcher';
 import { getSelection, isInMarkdownLink } from './src/utils/selection';
@@ -469,6 +475,7 @@ createPasteHandler(): Extension {
 ```
 
 **Key Changes:**
+
 - Changed from synchronous to `async` paste handler
 - Added priority-based decision tree
 - Selection handling with `isInMarkdownLink` check
@@ -481,16 +488,16 @@ createPasteHandler(): Extension {
 
 ```typescript
 export const DEFAULT_SETTINGS: UrlFormatterSettings = {
-    urlPatterns: [
-        {
-            name: 'Tickets per company',
-            pattern: 'https:\\/\\/([A-Za-z0-9-]+)\\.example\\.com\\/([A-Z0-9-]+)',
-            formatString: '$2 ($1)',
-            patternEnabled: true,
-        },
-    ],
-    enableTitleFetch: false,      // NEW: Disabled by default
-    titleFetchTimeout: 5000,      // NEW: 5 seconds default
+  urlPatterns: [
+    {
+      name: "Tickets per company",
+      pattern: "https:\\/\\/([A-Za-z0-9-]+)\\.example\\.com\\/([A-Z0-9-]+)",
+      formatString: "$2 ($1)",
+      patternEnabled: true,
+    },
+  ],
+  enableTitleFetch: false, // NEW: Disabled by default
+  titleFetchTimeout: 5000, // NEW: 5 seconds default
 };
 ```
 
@@ -572,18 +579,24 @@ Add informational text explaining the paste priority order:
 
 ```typescript
 // In settings tab, after title fetch settings
-const infoDiv = containerEl.createDiv('url-formatter-info-box');
-infoDiv.createEl('h4', { text: 'Paste Behavior' });
+const infoDiv = containerEl.createDiv("url-formatter-info-box");
+infoDiv.createEl("h4", { text: "Paste Behavior" });
 
-const ol = infoDiv.createEl('ol');
-ol.createEl('li', { text: 'If text is selected → URL is wrapped with selection as link title' });
-ol.createEl('li', { text: 'If no selection and pattern matches → URL is formatted using pattern' });
-ol.createEl('li', { text: 'If no match and title fetch enabled → Title is fetched from URL' });
-ol.createEl('li', { text: 'Otherwise → URL is pasted as-is' });
+const ol = infoDiv.createEl("ol");
+ol.createEl("li", {
+  text: "If text is selected → URL is wrapped with selection as link title",
+});
+ol.createEl("li", {
+  text: "If no selection and pattern matches → URL is formatted using pattern",
+});
+ol.createEl("li", {
+  text: "If no match and title fetch enabled → Title is fetched from URL",
+});
+ol.createEl("li", { text: "Otherwise → URL is pasted as-is" });
 
-containerEl.createEl('p', {
-    text: 'Note: Selection always takes priority over pattern matching.',
-    cls: 'url-formatter-note'
+containerEl.createEl("p", {
+  text: "Note: Selection always takes priority over pattern matching.",
+  cls: "url-formatter-note",
 });
 ```
 
@@ -592,27 +605,27 @@ containerEl.createEl('p', {
 ```css
 /* Information box styling */
 .url-formatter-info-box {
-    border: 1px solid var(--background-modifier-border);
-    border-radius: var(--radius-m);
-    padding: var(--size-4-3);
-    margin: var(--size-4-4) 0;
-    background-color: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  padding: var(--size-4-3);
+  margin: var(--size-4-4) 0;
+  background-color: var(--background-secondary);
 }
 
 .url-formatter-info-box h4 {
-    margin-top: 0;
-    margin-bottom: var(--size-4-2);
+  margin-top: 0;
+  margin-bottom: var(--size-4-2);
 }
 
 .url-formatter-info-box ol {
-    margin: 0;
-    padding-left: var(--size-4-4);
+  margin: 0;
+  padding-left: var(--size-4-4);
 }
 
 .url-formatter-note {
-    font-style: italic;
-    color: var(--text-muted);
-    margin-top: var(--size-4-2);
+  font-style: italic;
+  color: var(--text-muted);
+  margin-top: var(--size-4-2);
 }
 ```
 
@@ -623,19 +636,24 @@ containerEl.createEl('p', {
 ### 4.1 No New NPM Dependencies
 
 All functionality uses built-in Obsidian APIs:
+
 - `requestUrl` - for fetching URLs (handles CORS)
 - `EditorView` - for selection handling (CodeMirror 6)
 
 ### 4.2 Update Imports in `main.ts`
 
 ```typescript
-import { Plugin } from 'obsidian';
-import { EditorView } from '@codemirror/view';
-import { Extension } from '@codemirror/state';
-import { UrlFormatterSettingTab } from './src/settings-tab';
-import { UrlFormatterSettings, DEFAULT_SETTINGS } from './src/types';
-import { fetchUrlTitle } from './src/utils/title-fetcher';
-import { getSelection, isInMarkdownLink, Selection } from './src/utils/selection';
+import { Plugin } from "obsidian";
+import { EditorView } from "@codemirror/view";
+import { Extension } from "@codemirror/state";
+import { UrlFormatterSettingTab } from "./src/settings-tab";
+import { UrlFormatterSettings, DEFAULT_SETTINGS } from "./src/types";
+import { fetchUrlTitle } from "./src/utils/title-fetcher";
+import {
+  getSelection,
+  isInMarkdownLink,
+  Selection,
+} from "./src/utils/selection";
 ```
 
 ---
@@ -644,89 +662,89 @@ import { getSelection, isInMarkdownLink, Selection } from './src/utils/selection
 
 ### 5.1 Comprehensive Edge Cases
 
-| Case | Behavior | Implementation |
-|------|----------|----------------|
-| Empty clipboard | Do nothing | Check `!pastedText` early |
-| Invalid URL | Do nothing | Check `!isUrl()` |
-| Selection + invalid URL | Do nothing | Check `isUrl()` before selection check |
-| Multi-line selection | Encode newlines in link title | Replace `\n` with ` ` in selection |
-| Title fetch timeout | Paste bare URL | `try/catch` with timeout |
-| Title fetch CORS error | Paste bare URL | `try/catch` around `requestUrl` |
-| Empty `<title>` tag | Paste bare URL | Check `!title` before insert |
-| Title with HTML entities | Decode entities | Use `decodeHtmlEntities()` |
-| Very long title (500+ chars) | Truncate title | `title.slice(0, 500)` |
-| Title with special chars | Escape for markdown | Escape `[]` in title |
-| Inside markdown link `[]()` | Insert URL only | `isInMarkdownLink()` check |
-| Selection inside code block | Still insert | Basic check, can enhance |
-| URL with spaces | Wrap in `<>` | Use angle brackets |
-| Image URL (`.png`, `.jpg`) | Option: `![](url)` | Feature for future |
+| Case                         | Behavior                      | Implementation                         |
+| ---------------------------- | ----------------------------- | -------------------------------------- |
+| Empty clipboard              | Do nothing                    | Check `!pastedText` early              |
+| Invalid URL                  | Do nothing                    | Check `!isUrl()`                       |
+| Selection + invalid URL      | Do nothing                    | Check `isUrl()` before selection check |
+| Multi-line selection         | Encode newlines in link title | Replace `\n` with ` ` in selection     |
+| Title fetch timeout          | Paste bare URL                | `try/catch` with timeout               |
+| Title fetch CORS error       | Paste bare URL                | `try/catch` around `requestUrl`        |
+| Empty `<title>` tag          | Paste bare URL                | Check `!title` before insert           |
+| Title with HTML entities     | Decode entities               | Use `decodeHtmlEntities()`             |
+| Very long title (500+ chars) | Truncate title                | `title.slice(0, 500)`                  |
+| Title with special chars     | Escape for markdown           | Escape `[]` in title                   |
+| Inside markdown link `[]()`  | Insert URL only               | `isInMarkdownLink()` check             |
+| Selection inside code block  | Still insert                  | Basic check, can enhance               |
+| URL with spaces              | Wrap in `<>`                  | Use angle brackets                     |
+| Image URL (`.png`, `.jpg`)   | Option: `![](url)`            | Feature for future                     |
 
 ### 5.2 Enhanced Error Handling in `title-fetcher.ts`
 
 ```typescript
 export async function fetchUrlTitle(
-    url: string,
-    timeout: number
+  url: string,
+  timeout: number,
 ): Promise<string | null> {
-    // Validate URL
-    if (!url || typeof url !== 'string') {
-        return null;
+  // Validate URL
+  if (!url || typeof url !== "string") {
+    return null;
+  }
+
+  // Check if URL protocol is fetchable
+  const validProtocols = ["http:", "https:"];
+  try {
+    const urlObj = new URL(url);
+    if (!validProtocols.includes(urlObj.protocol)) {
+      return null; // Don't fetch file://, obsidian://, etc.
+    }
+  } catch {
+    return null;
+  }
+
+  try {
+    const response = await requestUrl({
+      url: url,
+      method: "GET",
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; ObsidianURLFormatter/1.0)",
+      },
+      timeout: timeout,
+    });
+
+    // Check content type
+    const contentType = response.headers?.["content-type"] || "";
+    if (!contentType.includes("text/html")) {
+      return null; // Not HTML
     }
 
-    // Check if URL protocol is fetchable
-    const validProtocols = ['http:', 'https:'];
-    try {
-        const urlObj = new URL(url);
-        if (!validProtocols.includes(urlObj.protocol)) {
-            return null; // Don't fetch file://, obsidian://, etc.
-        }
-    } catch {
-        return null;
+    const html = response.text;
+
+    // Extract title
+    const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/is);
+    if (!titleMatch || !titleMatch[1]) {
+      return null;
     }
 
-    try {
-        const response = await requestUrl({
-            url: url,
-            method: 'GET',
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (compatible; ObsidianURLFormatter/1.0)'
-            },
-            timeout: timeout
-        });
+    let title = titleMatch[1].trim();
 
-        // Check content type
-        const contentType = response.headers?.['content-type'] || '';
-        if (!contentType.includes('text/html')) {
-            return null; // Not HTML
-        }
+    // Clean up title
+    title = decodeHtmlEntities(title);
+    title = title.replace(/\s+/g, " "); // Normalize whitespace
 
-        const html = response.text;
-
-        // Extract title
-        const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/is);
-        if (!titleMatch || !titleMatch[1]) {
-            return null;
-        }
-
-        let title = titleMatch[1].trim();
-
-        // Clean up title
-        title = decodeHtmlEntities(title);
-        title = title.replace(/\s+/g, ' '); // Normalize whitespace
-
-        // Truncate if too long
-        if (title.length > 500) {
-            title = title.substring(0, 500) + '...';
-        }
-
-        return title || null;
-    } catch (error) {
-        // Log for debugging but don't throw
-        if (error instanceof Error) {
-            console.warn('URL Formatter: Title fetch failed:', error.message);
-        }
-        return null;
+    // Truncate if too long
+    if (title.length > 500) {
+      title = title.substring(0, 500) + "...";
     }
+
+    return title || null;
+  } catch (error) {
+    // Log for debugging but don't throw
+    if (error instanceof Error) {
+      console.warn("URL Formatter: Title fetch failed:", error.message);
+    }
+    return null;
+  }
 }
 ```
 
@@ -736,17 +754,17 @@ Titles might contain characters that interfere with Markdown:
 
 ```typescript
 function escapeMarkdownTitle(title: string): string {
-    // Escape square brackets
-    title = title.replace(/\[/g, '\\[');
-    title = title.replace(/\]/g, '\\]');
+  // Escape square brackets
+  title = title.replace(/\[/g, "\\[");
+  title = title.replace(/\]/g, "\\]");
 
-    // Replace newlines with spaces
-    title = title.replace(/\n/g, ' ');
+  // Replace newlines with spaces
+  title = title.replace(/\n/g, " ");
 
-    // Collapse multiple spaces
-    title = title.replace(/\s{2,}/g, ' ');
+  // Collapse multiple spaces
+  title = title.replace(/\s{2,}/g, " ");
 
-    return title.trim();
+  return title.trim();
 }
 ```
 
@@ -755,9 +773,9 @@ Update title fetching to useescape:
 ```typescript
 const title = await fetchUrlTitle(url, timeout);
 if (title) {
-    const escapedTitle = escapeMarkdownTitle(title);
-    const markdownLink = `[${escapedTitle}](${url})`;
-    // ...insert
+  const escapedTitle = escapeMarkdownTitle(title);
+  const markdownLink = `[${escapedTitle}](${url})`;
+  // ...insert
 }
 ```
 
@@ -802,15 +820,15 @@ if (title) {
 
 ### 6.2 Test URLs
 
-| URL | Expected Behavior |
-|-----|------------------|
-| `https://github.com` | Title: "GitHub: Let's build from here" or similar |
-| `https://obsidian.md` | Title: "Obsidian - Sharpen your thinking" |
-| `https://example.com` | Title: "Example Domain" |
-| `https://httpstat.us/404` | Fetch fails → bare URL |
-| `https://httpstat.us/200?sleep=10000` | Timeout → bare URL |
-| `file:///local/file.html` | Invalid protocol → no fetch |
-| `https://test.com/<script>` | Invalid URL → no processing |
+| URL                                   | Expected Behavior                                 |
+| ------------------------------------- | ------------------------------------------------- |
+| `https://github.com`                  | Title: "GitHub: Let's build from here" or similar |
+| `https://obsidian.md`                 | Title: "Obsidian - Sharpen your thinking"         |
+| `https://example.com`                 | Title: "Example Domain"                           |
+| `https://httpstat.us/404`             | Fetch fails → bare URL                            |
+| `https://httpstat.us/200?sleep=10000` | Timeout → bare URL                                |
+| `file:///local/file.html`             | Invalid protocol → no fetch                       |
+| `https://test.com/<script>`           | Invalid URL → no processing                       |
 
 ---
 
@@ -852,12 +870,12 @@ async loadSettings() {
 
 ### 8.1 Synchronous vsAsynchronous Operations
 
-| Operation | Type | Impact |
-|-----------|------|--------|
-| Selection check | Synchronous | Negligible |
-| URL validation | Synchronous | Negligible (uses `new URL()`) |
-| Regex matching | Synchronous | Fast, existing behavior |
-| Title fetching | Asynchronous | Network request, timeouts handled |
+| Operation       | Type         | Impact                            |
+| --------------- | ------------ | --------------------------------- |
+| Selection check | Synchronous  | Negligible                        |
+| URL validation  | Synchronous  | Negligible (uses `new URL()`)     |
+| Regex matching  | Synchronous  | Fast, existing behavior           |
+| Title fetching  | Asynchronous | Network request, timeouts handled |
 
 ### 8.2 Optimization Opportunities
 
@@ -885,12 +903,15 @@ Add sections:
 ## Features
 
 ### Pattern-Based Formatting
+
 Automatically format URLs using custom regex patterns.
 
 ### Selection-Based Links
+
 Select text and paste a URL to create a link with your selection as the title.
 
 ### Title Fallback
+
 Optionally fetch page titles when no pattern matches.
 
 ## Paste Behavior Priority
@@ -903,9 +924,11 @@ Optionally fetch page titles when no pattern matches.
 ## Settings
 
 ### URL Patterns
+
 Define custom regex patterns for formatting specific URLs.
 
 ### Title Fallback
+
 - **Enable title fetching**: Fetch page titles when no pattern matches
 - **Fetch timeout**: Maximum wait time for title fetch (1-30 seconds)
 ```
@@ -1033,9 +1056,10 @@ Handles text selection detection in CodeMirror 6 editor.
    - Add info box styles
 
 6.**Test thoroughly**
-   - Run through entire testing checklist
-   - Test edge cases
-   - Verify no regressions
+
+- Run through entire testing checklist
+- Test edge cases
+- Verify no regressions
 
 7. **Update documentation**
    - README.md
@@ -1061,34 +1085,37 @@ Handles text selection detection in CodeMirror 6 editor.
 
 ## Estimated Effort
 
-| Phase | Estimated Time |
-|-------|----------------|
-| Phase 1: Infrastructure | 2-3 hours |
-| Phase 2: Main Logic | 2-3 hours |
-| Phase 3: Settings UI | 1 hour |
-| Phase 4: Dependencies | 30 mins |
-| Phase 5: Edge Cases | 2 hours |
-| Phase 6:Testing | 2-3 hours |
-| Phase 7: Migration | 30 mins |
-| Phase 8: Performance | 30 mins |
-| Phase 9: Documentation | 1 hour |
-| Phase 10: Release | 30 mins |
-| **Total** | **12-14 hours** |
+| Phase                   | Estimated Time  |
+| ----------------------- | --------------- |
+| Phase 1: Infrastructure | 2-3 hours       |
+| Phase 2: Main Logic     | 2-3 hours       |
+| Phase 3: Settings UI    | 1 hour          |
+| Phase 4: Dependencies   | 30 mins         |
+| Phase 5: Edge Cases     | 2 hours         |
+| Phase 6:Testing         | 2-3 hours       |
+| Phase 7: Migration      | 30 mins         |
+| Phase 8: Performance    | 30 mins         |
+| Phase 9: Documentation  | 1 hour          |
+| Phase 10: Release       | 30 mins         |
+| **Total**               | **12-14 hours** |
 
 ---
 
 ## Risk Assessment
 
 ### Low Risk
+
 - Selection handling (well-defined scope)
 - Settings UI additions (isolated changes)
 - Type updates (backward compatible)
 
 ### Medium Risk
+
 - Title fetching (network operations, potential failures)
 - Async paste handler (proper event handling)
 
 ### Mitigation Strategies
+
 - Comprehensive error handling with try/catch
 - Timeouts for all network operations
 - Fallback to bare URL on any failure

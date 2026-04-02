@@ -12,12 +12,12 @@ URL Formatter is an Obsidian plugin that automatically transforms pasted URLs in
 
 ## Quick Links
 
-| Document | Description |
-|----------|-------------|
-| [architecture.md](./architecture.md) | System architecture, file structure, and data flow |
-| [components.md](./components.md) | Detailed component and API documentation |
-| [configuration.md](./configuration.md) | Configuration guide and pattern examples |
-| [release-process.md](./release-process.md) | Release workflow and CI/CD documentation |
+| Document                                   | Description                                        |
+| ------------------------------------------ | -------------------------------------------------- |
+| [architecture.md](./architecture.md)       | System architecture, file structure, and data flow |
+| [components.md](./components.md)           | Detailed component and API documentation           |
+| [configuration.md](./configuration.md)     | Configuration guide and pattern examples           |
+| [release-process.md](./release-process.md) | Release workflow and CI/CD documentation           |
 
 ---
 
@@ -31,12 +31,12 @@ Paste URL → Match Pattern → Format Link → Insert into Editor
 
 ### Key Files
 
-| File | Purpose |
-|------|---------|
-| `main.ts` | Plugin entry point and core logic |
-| `src/types.ts` | TypeScript interfaces |
-| `src/settings-tab.ts` | Settings UI |
-| `styles.css` | Plugin styling |
+| File                  | Purpose                           |
+| --------------------- | --------------------------------- |
+| `main.ts`             | Plugin entry point and core logic |
+| `src/types.ts`        | TypeScript interfaces             |
+| `src/settings-tab.ts` | Settings UI                       |
+| `styles.css`          | Plugin styling                    |
 
 ### Tech Stack
 
@@ -87,9 +87,9 @@ A user-defined rule that matches specific URLs:
 
 ```typescript
 interface UrlPattern {
-  name: string;          // "Jira Tickets"
-  pattern: string;       // regex pattern
-  formatString: string;  // "Jira: $1"
+  name: string; // "Jira Tickets"
+  pattern: string; // regex pattern
+  formatString: string; // "Jira: $1"
   patternEnabled: boolean;
 }
 ```
@@ -97,6 +97,7 @@ interface UrlPattern {
 ### Format String
 
 Template using `$n` placeholders:
+
 - `$0` - Full match
 - `$1`, `$2`, ... - Capture groups
 

@@ -5,10 +5,7 @@
     "inlineSources": true,
     "module": "ESNext",
     "target": "ES2021",
-    "lib": [
-      "DOM",
-      "ESNext"
-    ],
+    "lib": ["DOM", "ESNext"],
     "moduleResolution": "node",
     "noEmitOnError": true,
     "importHelpers": true,
@@ -24,11 +21,6 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": [
-    "**/*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "vendors"
-  ]
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "vendors"]
 }

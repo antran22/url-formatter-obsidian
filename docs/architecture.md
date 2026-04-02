@@ -6,13 +6,13 @@
 
 ## Technology Stack
 
-| Component | Technology |
-|-----------|------------|
-| Language | TypeScript 5.5.3 |
-| Build Tool | Rollup 4.18.0 |
-| Plugin API | Obsidian API 1.7.2 |
+| Component          | Technology                  |
+| ------------------ | --------------------------- |
+| Language           | TypeScript 5.5.3            |
+| Build Tool         | Rollup 4.18.0               |
+| Plugin API         | Obsidian API 1.7.2          |
 | Editor Integration | CodeMirror 6 (view & state) |
-| Package Manager | npm |
+| Package Manager    | npm                         |
 
 ## File Structure
 
@@ -84,16 +84,19 @@ User Pastes URL
 ## Build Process
 
 ### Development
+
 ```bash
 npm run dev   # Rollup with watch mode, inline sourcemaps
 ```
 
 ### Production
+
 ```bash
 npm run build  # Rollup production build, no sourcemaps
 ```
 
 ### Output
+
 - `main.js` - Bundled CommonJS module (Obsidian requirement)
 
 ## CodeMirror Integration
@@ -117,6 +120,7 @@ This allows direct manipulation of the editor state when URLs are pasted.
 ## External Dependencies
 
 All dependencies are `devDependencies`:
+
 - `obsidian` - Plugin API types
 - `@codemirror/view` - Editor view integration
 - `@codemirror/state` - Editor state management

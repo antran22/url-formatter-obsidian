@@ -8,20 +8,22 @@ URL patterns are configured through Obsidian's settings panel under **Community 
 
 Each URL pattern consists of:
 
-| Field | Type | Description | Example |
-|-------|------|-------------|---------|
-| `name` | string | Friendly identifier | "Jira Tickets" |
-| `pattern` | string | Regex pattern (escaped) | `https:\/\/.*atlassian\.net\/browse\/([A-Z0-9-]+)` |
-| `formatString` | string | Output template | `Jira: $1` |
-| `patternEnabled` | boolean | Active toggle | `true` |
+| Field            | Type    | Description             | Example                                            |
+| ---------------- | ------- | ----------------------- | -------------------------------------------------- |
+| `name`           | string  | Friendly identifier     | "Jira Tickets"                                     |
+| `pattern`        | string  | Regex pattern (escaped) | `https:\/\/.*atlassian\.net\/browse\/([A-Z0-9-]+)` |
+| `formatString`   | string  | Output template         | `Jira: $1`                                         |
+| `patternEnabled` | boolean | Active toggle           | `true`                                             |
 
 ### Regex Escaping
 
 **Important:** Forward slashes and dots must be escaped in patterns:
+
 - `/` → `\/`
 - `.` → `\.`
 
 Example pattern:
+
 ```
 Pattern URL:   https://company.atlassian.net/browse/PROJ-123
 Regex:         https:\/\/company\.atlassian\.net\/browse\/([A-Z0-9-]+)
@@ -29,12 +31,12 @@ Regex:         https:\/\/company\.atlassian\.net\/browse\/([A-Z0-9-]+)
 
 ### Format String Placeholders
 
-| Placeholder | Meaning |
-|-------------|---------|
-| `$0` | Full URL match |
-| `$1` | First capture group |
-| `$2` | Second capture group |
-| `$n` | Nth capture group |
+| Placeholder | Meaning              |
+| ----------- | -------------------- |
+| `$0`        | Full URL match       |
+| `$1`        | First capture group  |
+| `$2`        | Second capture group |
+| `$n`        | Nth capture group    |
 
 ---
 
@@ -118,9 +120,9 @@ The plugin uses debounced saving (500ms default) to prevent excessive disk write
 When loading settings, the plugin ensures `patternEnabled` property exists (defaulting to `true` for patterns missing this field):
 
 ```typescript
-this.settings.urlPatterns = this.settings.urlPatterns.map(pattern => ({
-    ...pattern,
-    patternEnabled: pattern.patternEnabled ?? true
+this.settings.urlPatterns = this.settings.urlPatterns.map((pattern) => ({
+  ...pattern,
+  patternEnabled: pattern.patternEnabled ?? true,
 }));
 ```
 
