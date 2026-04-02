@@ -3,6 +3,9 @@ import { EditorView } from '@codemirror/view';
 import { Extension } from '@codemirror/state';
 import { UrlFormatterSettingTab } from './src/settings-tab';
 import { UrlFormatterSettings, DEFAULT_SETTINGS } from './src/types';
+import { fetchUrlTitle } from './src/utils/title-fetcher';
+import { getSelection, isInMarkdownLink } from './src/utils/selection';
+import { escapeMarkdownTitle } from './src/utils/selection';
 
 /**
  * URL Formatter Plugin for Obsidian
@@ -32,29 +35,90 @@ export default class UrlFormatterPlugin extends Plugin {
                 try {
                     const pastedText = event.clipboardData?.getData('text');
 
-                    // Check if text was pasted and if it's a valid URL
-                    if (pastedText && plugin.isUrl(pastedText)) {
-                        const formattedText = plugin.formatUrl(pastedText);
-
-                        if (formattedText) {
-                            event.preventDefault();
-
-                            const { from, to } = view.state.selection.main;
-                            const newCursorPos = from + formattedText.length;
-
-                            // Dispatch a transaction to replace the selected text with the formatted text
-                            // and update the cursor position to the end of the new text
-                            view.dispatch({
-                                changes: { from, to, insert: formattedText },
-                                selection: { anchor: newCursorPos, head: newCursorPos }
-                            });
-                            return true;
-                        }
+                    if (!pastedText || !plugin.isUrl(pastedText)) {
+                        return false;
                     }
+
+                    const url = pastedText.trim();
+
+                    const selection = getSelection(view);
+
+                    if (selection) {
+                        event.preventDefault();
+
+                        if (isInMarkdownLink(view, selection.from)) {
+                            view.dispatch({
+                                changes: { from: selection.from, to: selection.to, insert: url },
+                                selection: { anchor: selection.from + url.length }
+                            });
+                        } else {
+                            const escapedText = escapeMarkdownTitle(selection.text);
+                            const markdownLink = `[${escapedText}](${url})`;
+                            view.dispatch({
+                                changes: { from: selection.from, to: selection.to, insert: markdownLink },
+                                selection: { anchor: selection.from + markdownLink.length }
+                            });
+                        }
+
+                        return true;
+                    }
+
+                    const formatted = plugin.formatUrl(url);
+
+                    if (formatted) {
+                        event.preventDefault();
+
+                        const { from, to } = view.state.selection.main;
+                        view.dispatch({
+                            changes: { from, to, insert: formatted },
+                            selection: { anchor: from + formatted.length }
+                        });
+
+                        return true;
+                    }
+
+                    if (plugin.settings.enableTitleFetch) {
+                        event.preventDefault();
+                        
+                        (async () => {
+                            try {
+                                const title = await fetchUrlTitle(url, plugin.settings.titleFetchTimeout);
+
+                                if (title) {
+                                    const { from, to } = view.state.selection.main;
+                                    const escapedTitle = escapeMarkdownTitle(title);
+                                    const markdownLink = `[${escapedTitle}](${url})`;
+
+                                    view.dispatch({
+                                        changes: { from, to, insert: markdownLink },
+                                        selection: { anchor: from + markdownLink.length }
+                                    });
+                                } else {
+                                    const { from, to } = view.state.selection.main;
+                                    view.dispatch({
+                                        changes: { from, to, insert: url },
+                                        selection: { anchor: from + url.length }
+                                    });
+                                }
+                            } catch (error) {
+                                console.error('URL Formatter Plugin: Title fetch error:', error);
+                                const { from, to } = view.state.selection.main;
+                                view.dispatch({
+                                    changes: { from, to, insert: url },
+                                    selection: { anchor: from + url.length }
+                                });
+                            }
+                        })();
+
+                        return true;
+                    }
+
+                    return false;
+
                 } catch (error) {
                     console.error('URL Formatter Plugin: Error in paste handler:', error);
+                    return false;
                 }
-                return false;
             }
         });
     }
@@ -66,10 +130,11 @@ export default class UrlFormatterPlugin extends Plugin {
         const loadedData = await this.loadData();
 
         this.settings = {
-            urlPatterns: loadedData?.urlPatterns ?? DEFAULT_SETTINGS.urlPatterns.map(p => ({ ...p }))
+            urlPatterns: loadedData?.urlPatterns ?? DEFAULT_SETTINGS.urlPatterns.map(p => ({ ...p })),
+            enableTitleFetch: loadedData?.enableTitleFetch ?? DEFAULT_SETTINGS.enableTitleFetch,
+            titleFetchTimeout: loadedData?.titleFetchTimeout ?? DEFAULT_SETTINGS.titleFetchTimeout,
         };
 
-        // Ensure backward compatibility for patternEnabled property
         this.settings.urlPatterns = this.settings.urlPatterns.map(pattern => ({
             ...pattern,
             patternEnabled: pattern.patternEnabled ?? true

@@ -41,3 +41,28 @@
     font-weight: bold;
     font-family: 'Cookie', "Inter", sans-serif; /* Added Inter as fallback */
 }
+
+/* Information box styling */
+.url-formatter-info-box {
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    padding: var(--size-4-3);
+    margin: var(--size-4-4) 0;
+    background-color: var(--background-secondary);
+}
+
+.url-formatter-info-box h4 {
+    margin-top: 0;
+    margin-bottom: var(--size-4-2);
+}
+
+.url-formatter-info-box ol {
+    margin: 0;
+    padding-left: var(--size-4-4);
+}
+
+.url-formatter-note {
+    font-style: italic;
+    color: var(--text-muted);
+    margin-top: var(--size-4-2);
+}

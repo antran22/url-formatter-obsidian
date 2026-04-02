@@ -44,6 +44,52 @@ export class UrlFormatterSettingTab extends PluginSettingTab {
                 }));
 
         // =========================================================
+        // Title Fetching Settings
+        // =========================================================
+        new Setting(containerEl).setName("Title Fallback").setHeading();
+
+        containerEl.createEl('p', {
+            text: 'When no pattern matches, you can optionally fetch the page title from the URL.'
+        });
+
+        new Setting(containerEl)
+            .setName('Enable title fetching')
+            .setDesc('Automatically fetch page title when no pattern matches')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.enableTitleFetch)
+                .onChange(async (value) => {
+                    this.plugin.settings.enableTitleFetch = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Fetch timeout (seconds)')
+            .setDesc('Maximum time to wait for title fetch (1-30 seconds)')
+            .addText(text => text
+                .setValue(String(this.plugin.settings.titleFetchTimeout / 1000))
+                .setPlaceholder('5')
+                .onChange(async (value) => {
+                    const seconds = Math.max(1, Math.min(30, parseInt(value) || 5));
+                    this.plugin.settings.titleFetchTimeout = seconds * 1000;
+                    await this.plugin.saveSettings();
+                }));
+
+        // Behavior documentation
+        const infoDiv = containerEl.createDiv('url-formatter-info-box');
+        infoDiv.createEl('h4', { text: 'Paste Behavior' });
+
+        const ol = infoDiv.createEl('ol');
+        ol.createEl('li', { text: 'If text is selected → URL is wrapped with selection as link title' });
+        ol.createEl('li', { text: 'If no selection and pattern matches → URL is formatted using pattern' });
+        ol.createEl('li', { text: 'If no match and title fetch enabled → Title is fetched from URL' });
+        ol.createEl('li', { text: 'Otherwise → URL is pasted as-is' });
+
+        containerEl.createEl('p', {
+            text: 'Note: Selection always takes priority over pattern matching.',
+            cls: 'url-formatter-note'
+        });
+
+        // =========================================================
         // Buy Me A Coffee Button
         // =========================================================
         const bmcButtonContainer = containerEl.createDiv('url-formatter-bmc-container');

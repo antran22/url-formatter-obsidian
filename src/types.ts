@@ -7,6 +7,8 @@ export interface UrlPattern {
 
 export interface UrlFormatterSettings {
     urlPatterns: UrlPattern[];
+    enableTitleFetch: boolean;
+    titleFetchTimeout: number;
 }
 
 export const DEFAULT_SETTINGS: UrlFormatterSettings = {
@@ -14,8 +16,10 @@ export const DEFAULT_SETTINGS: UrlFormatterSettings = {
         {
             name: 'Tickets per company',
             pattern: 'https:\\/\\/([A-Za-z0-9-]+)\\.example\\.com\\/([A-Z0-9-]+)',
-            formatString: '$2 ($1)', // Example output: ABC-123 (company) (if URL is company.example.com/ABC-123)
+            formatString: '$2 ($1)',
             patternEnabled: true,
         },
-    ]
+    ],
+    enableTitleFetch: false,
+    titleFetchTimeout: 5000,
 };

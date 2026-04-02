@@ -27,7 +27,8 @@
   "include": [
     "**/*.ts"
   ],
-  "exclude": [ // Explicitly exclude node_modules to ensure source files are found
-    "node_modules"
+  "exclude": [
+    "node_modules",
+    "vendors"
   ]
 }
