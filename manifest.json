@@ -1,7 +1,7 @@
 {
   "id": "url-paste-utils",
   "name": "URL Paste Utils",
-  "version": "1.2.2",
+  "version": "1.2.4",
   "minAppVersion": "0.15.0",
   "description": "Automatically formats specific URLs pasted into your notes into clean Markdown links.",
   "author": "antran22",
