@@ -1,10 +1,15 @@
 import { Plugin } from "obsidian";
+
 import { EditorView } from "@codemirror/view";
 import { Extension } from "@codemirror/state";
 import { UrlFormatterSettingTab } from "./src/settings-tab";
 import { UrlFormatterSettings, DEFAULT_SETTINGS } from "./src/types";
 import { fetchUrlTitle } from "./src/utils/title-fetcher";
-import { getSelection, isInMarkdownLink } from "./src/utils/selection";
+import {
+  getSelection,
+  isEditorCursorInLink,
+  isSafeInsertPosition,
+} from "./src/utils/selection";
 import { escapeMarkdownTitle } from "./src/utils/selection";
 
 /**
@@ -27,111 +32,135 @@ export default class UrlFormatterPlugin extends Plugin {
     console.log("URL Formatter Plugin unloaded.");
   }
 
-  createPasteHandler(): Extension {
-    const plugin = this;
+  private formatMarkdownLink(title: string, url: string): string {
+    const escapedText = escapeMarkdownTitle(title);
+    return `[${escapedText}](${url})`;
+  }
 
+  private tryWrapSelection(
+    url: string,
+    event: ClipboardEvent,
+    view: EditorView,
+  ) {
+    const selection = getSelection(view);
+
+    if (!selection) {
+      return false;
+    }
+    event.preventDefault();
+    const markdownLink = this.formatMarkdownLink(selection.text, url);
+
+    view.dispatch({
+      changes: {
+        from: selection.from,
+        to: selection.to,
+        insert: markdownLink,
+      },
+      selection: { anchor: selection.from + markdownLink.length },
+    });
+
+    return true;
+  }
+
+  private tryFormatRegexes(
+    url: string,
+    event: ClipboardEvent,
+    view: EditorView,
+  ) {
+    const formatted = this.formatUrl(url);
+    if (!formatted) {
+      return false;
+    }
+
+    event.preventDefault();
+
+    const { from, to } = view.state.selection.main;
+    view.dispatch({
+      changes: { from, to, insert: formatted },
+      selection: { anchor: from + formatted.length },
+    });
+
+    return true;
+  }
+
+  private tryTitleFetch(url: string, event: ClipboardEvent, view: EditorView) {
+    event.preventDefault();
+
+    const { from, to } = view.state.selection.main;
+
+    (async () => {
+      try {
+        const tempString = "🔄";
+        view.dispatch({
+          changes: { from, to, insert: tempString },
+          selection: { anchor: from + tempString.length },
+        });
+
+        const newTo = from + tempString.length;
+
+        const title = await fetchUrlTitle(url, this.settings.titleFetchTimeout);
+
+        if (title) {
+          const escapedTitle = escapeMarkdownTitle(title);
+          const markdownLink = `[${escapedTitle}](${url})`;
+
+          view.dispatch({
+            changes: { from, to: newTo, insert: markdownLink },
+            selection: { anchor: from + markdownLink.length },
+          });
+        } else {
+          view.dispatch({
+            changes: { from, to: newTo, insert: url },
+            selection: { anchor: from + url.length },
+          });
+        }
+      } catch (error) {
+        console.error("URL Formatter Plugin: Title fetch error:", error);
+        view.dispatch({
+          changes: { from, to, insert: url },
+          selection: { anchor: from + url.length },
+        });
+      }
+    })();
+
+    return true;
+  }
+
+  createPasteHandler(): Extension {
     return EditorView.domEventHandlers({
       paste: (event: ClipboardEvent, view: EditorView) => {
-        try {
-          const pastedText = event.clipboardData?.getData("text");
+        const pastedText = event.clipboardData?.getData("text");
 
-          if (!pastedText || !plugin.isUrl(pastedText)) {
-            return false;
-          }
-
-          const url = pastedText.trim();
-
-          const selection = getSelection(view);
-
-          if (selection) {
-            event.preventDefault();
-
-            if (isInMarkdownLink(view, selection.from)) {
-              view.dispatch({
-                changes: {
-                  from: selection.from,
-                  to: selection.to,
-                  insert: url,
-                },
-                selection: { anchor: selection.from + url.length },
-              });
-            } else {
-              const escapedText = escapeMarkdownTitle(selection.text);
-              const markdownLink = `[${escapedText}](${url})`;
-              view.dispatch({
-                changes: {
-                  from: selection.from,
-                  to: selection.to,
-                  insert: markdownLink,
-                },
-                selection: { anchor: selection.from + markdownLink.length },
-              });
-            }
-
-            return true;
-          }
-
-          const formatted = plugin.formatUrl(url);
-
-          if (formatted) {
-            event.preventDefault();
-
-            const { from, to } = view.state.selection.main;
-            view.dispatch({
-              changes: { from, to, insert: formatted },
-              selection: { anchor: from + formatted.length },
-            });
-
-            return true;
-          }
-
-          if (plugin.settings.enableTitleFetch) {
-            event.preventDefault();
-
-            (async () => {
-              try {
-                const title = await fetchUrlTitle(
-                  url,
-                  plugin.settings.titleFetchTimeout,
-                );
-
-                if (title) {
-                  const { from, to } = view.state.selection.main;
-                  const escapedTitle = escapeMarkdownTitle(title);
-                  const markdownLink = `[${escapedTitle}](${url})`;
-
-                  view.dispatch({
-                    changes: { from, to, insert: markdownLink },
-                    selection: { anchor: from + markdownLink.length },
-                  });
-                } else {
-                  const { from, to } = view.state.selection.main;
-                  view.dispatch({
-                    changes: { from, to, insert: url },
-                    selection: { anchor: from + url.length },
-                  });
-                }
-              } catch (error) {
-                console.error(
-                  "URL Formatter Plugin: Title fetch error:",
-                  error,
-                );
-                const { from, to } = view.state.selection.main;
-                view.dispatch({
-                  changes: { from, to, insert: url },
-                  selection: { anchor: from + url.length },
-                });
-              }
-            })();
-
-            return true;
-          }
-
-          return false;
-        } catch (error) {
-          console.error("URL Formatter Plugin: Error in paste handler:", error);
+        if (
+          !pastedText ||
+          !this.isUrl(pastedText) ||
+          !isSafeInsertPosition(view)
+        ) {
           return false;
         }
+
+        // Check if cursor is inside an existing link before fetching title
+        if (isEditorCursorInLink(view)) {
+          return false; // Let paste happen as-is
+        }
+
+        // try transformation
+
+        const url = pastedText.trim();
+
+        if (this.tryWrapSelection(url, event, view)) {
+          return true;
+        }
+
+        if (this.tryFormatRegexes(url, event, view)) {
+          return true;
+        }
+
+        if (this.settings.enableTitleFetch) {
+          return this.tryTitleFetch(url, event, view);
+        }
+
+        return false;
       },
     });
   }

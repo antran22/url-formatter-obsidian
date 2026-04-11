@@ -42,51 +42,55 @@ export function getSelection(view: EditorView): Selection | null {
   };
 }
 
-/**
- * Check if cursor/selection is inside markdown link parentheses
- * Prevents double-wrapping: [text]() cursor here
- *
- * @param view - The CodeMirror EditorView
- * @param pos - Position to check
- * @returns true if inside markdown link parentheses
- */
-export function isInMarkdownLink(view: EditorView, pos: number): boolean {
+export function isEditorCursorInLink(view: EditorView): boolean {
+  const pos = view.state.selection.main.from;
   const line = view.state.doc.lineAt(pos);
   const lineText = line.text;
   const cursorPos = pos - line.from;
+  return isInLink(lineText, cursorPos);
+}
 
-  let openParenIndex = -1;
-  let depth = 0;
+export function isInLink(lineText: string, cursorPos: number): boolean {
+  const allLinks = [...extractMarkdownLinks(lineText), ...extractWikilinks(lineText)];
+  return allLinks.some(
+    (link) => cursorPos > link.start && cursorPos <= link.end
+  );
+}
+interface LinkBounds {
+  start: number;
+  end: number;
+}
 
-  for (let i = cursorPos - 1; i >= 0; i--) {
-    if (lineText[i] === ")" && i < cursorPos) {
-      depth++;
-    } else if (lineText[i] === "(") {
-      if (depth === 0) {
-        openParenIndex = i;
-        break;
-      }
-      depth--;
-    }
+/**
+ * Extract all markdown link boundaries from a line
+ * Pattern: [text](url)
+ */
+function extractMarkdownLinks(lineText: string): LinkBounds[] {
+  const matches: LinkBounds[] = [];
+  const regex = /\[[^\]]*\]\([^)]*\)/g;
+  let match;
+
+  while ((match = regex.exec(lineText)) !== null) {
+    matches.push({ start: match.index, end: match.index + match[0].length - 1 });
   }
 
-  if (openParenIndex === -1) return false;
+  return matches;
+}
 
-  if (openParenIndex > 0 && lineText[openParenIndex - 1] === "]") {
-    let bracketDepth = 0;
-    for (let i = openParenIndex - 2; i >= 0; i--) {
-      if (lineText[i] === "]") {
-        bracketDepth++;
-      } else if (lineText[i] === "[") {
-        if (bracketDepth === 0) {
-          return true;
-        }
-        bracketDepth--;
-      }
-    }
+/**
+ * Extract all wikilink boundaries from a line
+ * Pattern: [[content]]
+ */
+function extractWikilinks(lineText: string): LinkBounds[] {
+  const matches: LinkBounds[] = [];
+  const regex = /\[\[.*?\]\]/g;
+  let match;
+
+  while ((match = regex.exec(lineText)) !== null) {
+    matches.push({ start: match.index, end: match.index + match[0].length - 1 });
   }
 
-  return false;
+  return matches;
 }
 
 /**
