@@ -12,7 +12,7 @@ release:
     # Stage the manifest.json change
     git add manifest.json package.json
 
-    git commit -m "release: v{{version}}"
+    git commit -a -m "release: v{{version}}"
     
     # Create annotated tag
     git tag -a "v{{version}}" -m "Release v{{version}}"

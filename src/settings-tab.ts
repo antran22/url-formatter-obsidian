@@ -34,9 +34,20 @@ export class UrlFormatterSettingTab extends PluginSettingTab {
       text: "You can easily toggle each pattern on or off.",
     });
 
-    // Render each existing URL pattern
+    const table = containerEl.createEl("table", {
+      cls: "url-formatter-patterns-table",
+    });
+    const thead = table.createEl("thead");
+    const headerRow = thead.createEl("tr");
+    headerRow.createEl("th", { text: "Enabled" });
+    headerRow.createEl("th", { text: "Name" });
+    headerRow.createEl("th", { text: "Regex" });
+    headerRow.createEl("th", { text: "Format" });
+    headerRow.createEl("th");
+
+    const tbody = table.createEl("tbody");
     this.plugin.settings.urlPatterns.forEach((patternConfig, index) => {
-      this.renderPatternItem(patternConfig, index, containerEl);
+      this.renderPatternRow(patternConfig, index, tbody);
     });
 
     new Setting(containerEl).addButton((button) =>
@@ -131,109 +142,105 @@ export class UrlFormatterSettingTab extends PluginSettingTab {
     });
   }
 
-  /**
-   * Renders a single pattern configuration item in the settings UI
-   * @param patternConfig - The pattern configuration to render
-   * @param index - The index of the pattern in the array
-   * @param containerEl - The parent container element
-   */
-  private renderPatternItem(
+  private renderPatternRow(
     patternConfig: UrlPattern,
-    index: number,
-    containerEl: HTMLElement,
+    _index: number,
+    tbody: HTMLElement,
   ): void {
-    const patternContainer = containerEl.createDiv(
-      "url-formatter-pattern-item",
+    const row = tbody.createEl("tr", { cls: "url-formatter-pattern-row" });
+
+    // Toggle column
+    const toggleCell = row.createEl("td", { cls: "url-formatter-cell-toggle" });
+    toggleCell.createEl(
+      "input",
+      { type: "checkbox", cls: "url-formatter-toggle" },
+      (el) => {
+        el.checked = patternConfig.patternEnabled;
+        el.addEventListener("change", async () => {
+          patternConfig.patternEnabled = el.checked;
+          await this.plugin.saveSettings();
+        });
+      },
     );
 
-    // Pattern header with toggle
-    new Setting(patternContainer)
-      .setName(`Pattern ${index + 1}`)
-      .setHeading()
-      .addToggle((toggle) =>
-        toggle
-          .setValue(patternConfig.patternEnabled)
-          .onChange(async (value) => {
-            patternConfig.patternEnabled = value;
-            await this.plugin.saveSettings();
-          }),
-      );
+    // Name column
+    const nameCell = row.createEl("td", { cls: "url-formatter-cell-name" });
+    nameCell.createEl(
+      "input",
+      {
+        type: "text",
+        cls: "url-formatter-table-input",
+        placeholder: 'e.g., "example.com"',
+      },
+      (el) => {
+        el.value = patternConfig.name;
+        el.addEventListener("input", () => {
+          patternConfig.name = el.value;
+          this.plugin.debouncedSaveSettings();
+        });
+      },
+    );
 
-    // Pattern name
-    new Setting(patternContainer)
-      .setName("Pattern name")
-      .setDesc(
-        'Give the pattern a name so you can identify its purpose. (e.g., "Blog X", "Jira Ticket", ... )',
-      )
-      .addText((text) =>
-        text
-          .setPlaceholder('e.g., "example.com"')
-          .setValue(patternConfig.name)
-          .onChange((value) => {
-            patternConfig.name = value;
-            this.plugin.debouncedSaveSettings();
-          }),
-      );
+    // Regex column
+    const regexCell = row.createEl("td", { cls: "url-formatter-cell-regex" });
+    regexCell.createEl(
+      "input",
+      {
+        type: "text",
+        cls: "url-formatter-table-input",
+        placeholder: 'e.g., "https:\/\/..."',
+      },
+      (el) => {
+        el.value = patternConfig.pattern;
+        el.addEventListener("input", () => {
+          patternConfig.pattern = el.value;
+          try {
+            new RegExp(el.value);
+            el.removeClass("url-formatter-invalid-regex");
+          } catch {
+            el.addClass("url-formatter-invalid-regex");
+          }
+          this.plugin.debouncedSaveSettings();
+        });
+      },
+    );
 
-    // Regular expression with validation
-    new Setting(patternContainer)
-      .setName("Regular expression")
-      .setDesc(
-        "The regex to match the url. **Use `\\/` to escape literal forward slashes `/` and `\\.` to escape literal dots `.`",
-      )
-      .addText((text) => {
-        text
-          .setPlaceholder(
-            'e.g., "https:\\/\\/([A-Za-z0-9-]+)\\.example\\.com\\/([A-Z0-9-]+)"',
-          )
-          .setValue(patternConfig.pattern)
-          .onChange((value) => {
-            patternConfig.pattern = value;
+    // Format column
+    const formatCell = row.createEl("td", { cls: "url-formatter-cell-format" });
+    formatCell.createEl(
+      "input",
+      {
+        type: "text",
+        cls: "url-formatter-table-input",
+        placeholder: 'e.g., "$2 ($1)"',
+      },
+      (el) => {
+        el.value = patternConfig.formatString;
+        el.addEventListener("input", () => {
+          patternConfig.formatString = el.value;
+          this.plugin.debouncedSaveSettings();
+        });
+      },
+    );
 
-            // Validate regex and provide visual feedback
-            try {
-              new RegExp(value);
-              text.inputEl.removeClass("url-formatter-invalid-regex");
-            } catch (e) {
-              text.inputEl.addClass("url-formatter-invalid-regex");
-            }
-
-            this.plugin.debouncedSaveSettings();
-          });
-        text.inputEl.addClass("url-formatter-full-width-input");
-        text.inputEl.addClass("url-formatter-margin-bottom");
-      });
-
-    // Output format string
-    new Setting(patternContainer)
-      .setName("Output format string")
-      .setDesc(
-        'Use $0 for the full url match, $1, $2, etc., for regex capture groups. e.g., "Blog: $1 - $2!"',
-      )
-      .addText((text) => {
-        text
-          .setPlaceholder('e.g., "$2 ($1)"')
-          .setValue(patternConfig.formatString)
-          .onChange((value) => {
-            patternConfig.formatString = value;
-            this.plugin.debouncedSaveSettings();
-          });
-        text.inputEl.addClass("url-formatter-full-width-input");
-        text.inputEl.addClass("url-formatter-margin-bottom");
-      });
-
-    // Remove button - fixed closure bug by using filter instead of splice
-    new Setting(patternContainer).addButton((button) =>
-      button
-        .setButtonText("Remove pattern")
-        .setIcon("trash")
-        .setClass("mod-warning")
-        .onClick(async () => {
+    // Remove column
+    const removeCell = row.createEl("td", { cls: "url-formatter-cell-remove" });
+    removeCell.createEl(
+      "button",
+      {
+        cls: "clickable-icon url-formatter-remove-btn",
+        attr: { "aria-label": "Remove pattern" },
+      },
+      (el) => {
+        el.innerHTML =
+          '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
+        el.addEventListener("click", async () => {
           this.plugin.settings.urlPatterns =
             this.plugin.settings.urlPatterns.filter((p) => p !== patternConfig);
           await this.plugin.saveSettings();
           this.display();
-        }),
+        });
+      },
     );
   }
 }
